@@ -47,7 +47,7 @@ SCHEDULE = {
 
 
 updater = Updater(TOKEN, use_context=True)
-dp = updater.dispatcher
+dispatcher: Dispatcher = updater.dispatcher
 
 
 def notify(context: CallbackContext):
@@ -58,40 +58,39 @@ def notify(context: CallbackContext):
         return
 
     for lesson in SCHEDULE[today]:
-        if lesson["start"] <= now < lesson["end"]:
-            message = f"📚 {lesson['subject']}\n🚪 Кабинет: {lesson['room']}\n⏰ {lesson['start'].strftime('%H:%M')}"
+        if lesson["start"] == now:
+            message = (
+                f"🔔 Урок: {lesson['subject']}\n"
+                f"🚪 Кабинет: {lesson['room']}\n"
+                f"⏰ Начало: {lesson['start'].strftime('%H:%M')}"
+            )
             context.bot.send_message(chat_id=context.job.context, text=message)
-            break
 
 
 def start(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     context.job_queue.run_repeating(notify, interval=60, first=0, context=chat_id)
-    update.message.reply_text("✅ Подписка на уведомления активирована!")
+    update.message.reply_text("✅ Вы подписаны на уведомления!")
 
 
 @app.route("/")
-def home():
-    return "Bot is alive!"
+def index():
+    return "Bot is alive!", 200
 
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
+    print("Update:", request.get_json())
     update = Update.de_json(request.get_json(force=True), updater.bot)
-    dp.process_update(update)
-    return "OK"
+    dispatcher.process_update(update)
+    return "OK", 200
 
 
-def run_flask():
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
-
-def main():
-    dp.add_handler(CommandHandler("start", start))
-    updater.start_polling()
-    threading.Thread(target=run_flask).start()
-    updater.idle()
+dispatcher.add_handler(CommandHandler("start", start))
 
 
 if __name__ == "__main__":
-    main()
+    PORT = int(os.environ.get("PORT", 5000))
+    updater.start_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN)
+    updater.bot.set_webhook(f"https://one2a-bot.onrender.com/{TOKEN}")
+    app.run(host="0.0.0.0", port=PORT)
