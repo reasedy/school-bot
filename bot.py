@@ -10,7 +10,7 @@ import threading
 app = Flask(__name__)
 
 TIMEZONE = pytz.timezone("Asia/Oral")
-TOKEN = "7917769229:AAHrqDzs9c64KRcHpNpLTjsZz0"
+TOKEN = "7917769229:AAHrqDzs9c64KRcHpNXLJZ0V6GMpLTjsZz0"
 
 SCHEDULE = {
     "Monday": [
