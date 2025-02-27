@@ -8,7 +8,7 @@ from flask import Flask
 
 app = Flask(__name__)
 
-TIMEZONE = pytz.timezone("Asia/Almaty")
+TIMEZONE = pytz.timezone("Asia/Oral")
 TOKEN = "7917769229:AAHrqDzs9c64KRcHpNpLTjsZz0"
 
 SCHEDULE = {
@@ -53,7 +53,6 @@ def notify(context: CallbackContext):
         return
 
     lessons = SCHEDULE[today]
-
     for i in range(len(lessons) - 1):
         if lessons[i]["end"] <= now < lessons[i + 1]["start"]:
             next_lesson = lessons[i + 1]
@@ -61,7 +60,7 @@ def notify(context: CallbackContext):
                 f"🔔 Следующий урок:\n"
                 f"📚 {next_lesson['subject']}\n"
                 f"🚪 Кабинет: {next_lesson['room']}\n"
-                f"⏰ Начало в {next_lesson['start'].strftime('%H:%M')}"
+                f"⏰ {next_lesson['start'].strftime('%H:%M')}"
             )
             context.bot.send_message(chat_id=context.job.context, text=message)
             break
@@ -73,7 +72,7 @@ def start(update: Update, context: CallbackContext):
     update.message.reply_text("✅ Вы подписаны на уведомления!")
 
 
-@app.route('/')
+@app.route("/")
 def ping():
     return "Bot is alive!", 200
 
@@ -83,14 +82,11 @@ def main():
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
 
-    port = int(os.environ.get("PORT", 5000))
-    updater.start_webhook(
-        listen="0.0.0.0",
-        port=port,
-        url_path=TOKEN,
-        webhook_url=f"https://one2a-bot.onrender.com/{TOKEN}"
-    )
-    updater.idle()
+    # POLLING вместо Webhook
+    updater.start_polling()
+
+    # Flask запускается отдельно
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
 
 if __name__ == "__main__":
