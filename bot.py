@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, time
 from telegram import Update, Bot
 from telegram.ext import Updater, CommandHandler, CallbackContext
+
 import pytz
 from flask import Flask, request
 import threading
@@ -47,7 +48,8 @@ SCHEDULE = {
 
 
 updater = Updater(TOKEN, use_context=True)
-dispatcher: Dispatcher = updater.dispatcher
+dispatcher = updater.dispatcher
+
 
 
 def notify(context: CallbackContext):
