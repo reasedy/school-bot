@@ -5,6 +5,7 @@ from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 import pytz
 from flask import Flask
+import threading
 
 app = Flask(__name__)
 
@@ -77,16 +78,21 @@ def ping():
     return "Bot is alive!", 200
 
 
+def run_flask():
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+
 def main():
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
 
-    # POLLING вместо Webhook
-    updater.start_polling()
+    # Flask запускается в отдельном потоке
+    threading.Thread(target=run_flask).start()
 
-    # Flask запускается отдельно
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    # Бот запускается в бесконечном цикле
+    updater.start_polling()
+    updater.idle()
 
 
 if __name__ == "__main__":
