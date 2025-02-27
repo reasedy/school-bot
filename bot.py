@@ -1,16 +1,13 @@
 import os
 import logging
 from datetime import datetime, time
-from telegram import Update
+from telegram import Update, Bot
 from telegram.ext import Updater, CommandHandler, CallbackContext
 import pytz
 from flask import Flask, request
 import threading
 
 app = Flask(__name__)
-
-updater = None
-dp = None
 
 TOKEN = "7917769229:AAHrqDzs9c64KRcHpNXLJZ0V6GMpLTjsZz0"
 TIMEZONE = pytz.timezone("Asia/Oral")
@@ -49,6 +46,10 @@ SCHEDULE = {
 }
 
 
+updater = Updater(TOKEN, use_context=True)
+dp = updater.dispatcher
+
+
 def notify(context: CallbackContext):
     now = datetime.now(TIMEZONE).time()
     today = datetime.now(TIMEZONE).strftime("%A")
@@ -56,16 +57,9 @@ def notify(context: CallbackContext):
     if today not in SCHEDULE:
         return
 
-    lessons = SCHEDULE[today]
-    for i in range(len(lessons) - 1):
-        if lessons[i]["end"] <= now < lessons[i + 1]["start"]:
-            next_lesson = lessons[i + 1]
-            message = (
-                f"🔔 Следующий урок:\n"
-                f"📚 {next_lesson['subject']}\n"
-                f"🚪 Кабинет: {next_lesson['room']}\n"
-                f"⏰ {next_lesson['start'].strftime('%H:%M')}"
-            )
+    for lesson in SCHEDULE[today]:
+        if lesson["start"] <= now < lesson["end"]:
+            message = f"📚 {lesson['subject']}\n🚪 Кабинет: {lesson['room']}\n⏰ {lesson['start'].strftime('%H:%M')}"
             context.bot.send_message(chat_id=context.job.context, text=message)
             break
 
@@ -73,19 +67,19 @@ def notify(context: CallbackContext):
 def start(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     context.job_queue.run_repeating(notify, interval=60, first=0, context=chat_id)
-    update.message.reply_text("✅ Вы подписаны на уведомления!")
+    update.message.reply_text("✅ Подписка на уведомления активирована!")
 
 
 @app.route("/")
-def ping():
-    return "Bot is alive!", 200
+def home():
+    return "Bot is alive!"
 
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), bot=updater.bot)
+    update = Update.de_json(request.get_json(force=True), updater.bot)
     dp.process_update(update)
-    return "OK", 200
+    return "OK"
 
 
 def run_flask():
@@ -93,13 +87,9 @@ def run_flask():
 
 
 def main():
-    global updater, dp
-    updater = Updater(TOKEN, use_context=True)
-    dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
-
-    threading.Thread(target=run_flask).start()
     updater.start_polling()
+    threading.Thread(target=run_flask).start()
     updater.idle()
 
 
