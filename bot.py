@@ -79,12 +79,11 @@ def start(update: Update, context: CallbackContext):
 def ping():
     return "Bot is alive!", 200
 
-@app.route(f"/{7917769229:AAHrqDzs9c64KRcHpNXLJZ0V6GMpLTjsZz0}", methods=["POST"])
+@app.route(f"/7917769229:AAHrqDzs9c64KRcHpNXLJZ0V6GMpLTjsZz0", methods=["POST"])
 def webhook():
     update = Update.de_json(request.get_json(force=True), updater.bot)
     dp.process_update(update)
     return "OK", 200
-
 def run_flask():
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
