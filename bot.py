@@ -4,15 +4,16 @@ from datetime import datetime, time
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 import pytz
-from flask import Flask
+from flask import Flask, request
 import threading
-from flask import request
-
 
 app = Flask(__name__)
 
-TIMEZONE = pytz.timezone("Asia/Oral")
+updater = None
+dp = None
+
 TOKEN = "7917769229:AAHrqDzs9c64KRcHpNXLJZ0V6GMpLTjsZz0"
+TIMEZONE = pytz.timezone("Asia/Oral")
 
 SCHEDULE = {
     "Monday": [
@@ -79,24 +80,25 @@ def start(update: Update, context: CallbackContext):
 def ping():
     return "Bot is alive!", 200
 
-@app.route(f"/7917769229:AAHrqDzs9c64KRcHpNXLJZ0V6GMpLTjsZz0", methods=["POST"])
+
+@app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), updater.bot)
+    update = Update.de_json(request.get_json(force=True), bot=updater.bot)
     dp.process_update(update)
     return "OK", 200
+
+
 def run_flask():
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
 
 def main():
+    global updater, dp
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
 
-    # Flask запускается в отдельном потоке
     threading.Thread(target=run_flask).start()
-
-    # Бот запускается в бесконечном цикле
     updater.start_polling()
     updater.idle()
 
