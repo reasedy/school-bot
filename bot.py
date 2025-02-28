@@ -1,15 +1,13 @@
 import os
 import logging
 from datetime import datetime, time
-from telegram import Update, Bot
+from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
-
 import pytz
 from flask import Flask, request
-import threading
+from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
-
 TOKEN = "7917769229:AAHrqDzs9c64KRcHpNXLJZ0V6GMpLTjsZz0"
 TIMEZONE = pytz.timezone("Asia/Oral")
 
@@ -42,8 +40,8 @@ SCHEDULE = {
     ],
     "Friday": [
         {"subject": "cie_ksm/kaz", "start": time(8, 30), "end": time(10, 10), "room": "351"},
-        {"subject": "Math", "start": time(10, 15), "end": time(17, 44), "room": "223"},
-        {"subject": "check", "start": time(17, 45), "end": time(17, 50), "room": "223"},
+        {"subject": "Math", "start": time(10, 15), "end": time(17, 49), "room": "223"},
+        {"subject": "check", "start": time(17, 50), "end": time(17, 52), "room": "223"},
     ],
 }
 
