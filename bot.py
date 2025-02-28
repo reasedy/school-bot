@@ -42,19 +42,22 @@ SCHEDULE = {
     ],
     "Friday": [
         {"subject": "cie_ksm/kaz", "start": time(8, 30), "end": time(10, 10), "room": "351"},
-        {"subject": "Math", "start": time(10, 15), "end": time(17, 10), "room": "223"},
-        {"subject": "check", "start": time(17, 12), "end": time(17, 17), "room": "223"},
+        {"subject": "Math", "start": time(10, 15), "end": time(17, 22), "room": "223"},
+        {"subject": "check", "start": time(17, 25), "end": time(17, 30), "room": "223"},
     ],
 }
 
 updater = Updater(TOKEN, use_context=True)
 dispatcher = updater.dispatcher
+logging.basicConfig(level=logging.INFO)
+
+def is_time_equal(t1, t2, delta=60):
+    return abs((datetime.combine(datetime.today(), t1) - datetime.combine(datetime.today(), t2)).seconds) <= delta
 
 
 def daily_notify(context: CallbackContext):
     today = datetime.now(TIMEZONE).strftime("%A")
-
-    if today in SCHEDULE and len(SCHEDULE[today]) > 0:
+    if today in SCHEDULE and SCHEDULE[today]:
         first_lesson = SCHEDULE[today][0]
         message = (
             f"Доброе утро! 🌞\n"
@@ -64,17 +67,24 @@ def daily_notify(context: CallbackContext):
             f"⏰ Начало: {first_lesson['start'].strftime('%H:%M')}"
         )
         context.bot.send_message(chat_id=context.job.context, text=message)
+        logging.info("Утреннее уведомление отправлено")
 
 
 def notify(context: CallbackContext):
     now = datetime.now(TIMEZONE).time()
     today = datetime.now(TIMEZONE).strftime("%A")
+    logging.info(f"[{today}] Текущее время: {now}")
 
     if today not in SCHEDULE:
+        logging.info("Сегодня нет уроков")
         return
 
     for index, lesson in enumerate(SCHEDULE[today]):
-        if lesson["end"] == now:
+        logging.info(f"Проверяем урок: {lesson['subject']} заканчивается в {lesson['end']}")
+
+        if is_time_equal(lesson["end"], now):
+            logging.info(f"Урок найден: {lesson['subject']}")
+
             next_lesson = SCHEDULE[today][index + 1] if index + 1 < len(SCHEDULE[today]) else None
             if next_lesson:
                 message = (
@@ -85,6 +95,7 @@ def notify(context: CallbackContext):
                     f"⏰ Начало: {next_lesson['start'].strftime('%H:%M')}"
                 )
                 context.bot.send_message(chat_id=context.job.context, text=message)
+                logging.info("Сообщение отправлено")
 
 
 def start(update: Update, context: CallbackContext):
@@ -92,6 +103,7 @@ def start(update: Update, context: CallbackContext):
     context.job_queue.run_daily(daily_notify, time(8, 0), context=chat_id)
     context.job_queue.run_repeating(notify, interval=60, first=0, context=chat_id)
     update.message.reply_text("✅ Вы подписаны на уведомления!")
+    logging.info(f"Пользователь {chat_id} подписался на уведомления")
 
 
 @app.route("/")
@@ -101,7 +113,6 @@ def index():
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    print("Update:", request.get_json())
     update = Update.de_json(request.get_json(force=True), updater.bot)
     dispatcher.process_update(update)
     return "OK", 200
