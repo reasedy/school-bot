@@ -40,8 +40,8 @@ SCHEDULE = {
     ],
     "Friday": [
         {"subject": "cie_ksm/kaz", "start": time(8, 30), "end": time(10, 10), "room": "351"},
-        {"subject": "Math", "start": time(10, 15), "end": time(18, 4), "room": "223"},
-        {"subject": "check", "start": time(18, 5), "end": time(17, 6), "room": "223"},
+        {"subject": "Math", "start": time(10, 15), "end": time(18, 10), "room": "223"},
+        {"subject": "check", "start": time(18, 12), "end": time(18, 13), "room": "223"},
     ],
 }
 
@@ -63,6 +63,7 @@ def daily_notify(context: CallbackContext):
             f"⏰ Начало: {first_lesson['start'].strftime('%H:%M')}"
         )
         context.bot.send_message(chat_id=context.job.context, text=message)
+        logging.info(f"Отправлено уведомление на утро: {message}")
 
 
 def notify(context: CallbackContext):
@@ -83,13 +84,15 @@ def notify(context: CallbackContext):
                     f"⏰ Начало: {next_lesson['start'].strftime('%H:%M')}"
                 )
                 context.bot.send_message(chat_id=context.job.context, text=message)
+                logging.info(f"Отправлено уведомление: {message}")
 
 
 def start(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
-    scheduler.add_job(daily_notify, 'cron', hour=8, minute=0, args=[context], id=str(chat_id))
-    scheduler.add_job(notify, 'interval', seconds=60, args=[context], id=f"notify_{chat_id}")
+    scheduler.add_job(daily_notify, 'cron', hour=8, minute=0, args=[context], id=str(chat_id), timezone=TIMEZONE)
+    scheduler.add_job(notify, 'interval', seconds=60, args=[context], timezone=TIMEZONE)
     update.message.reply_text("✅ Вы подписаны на уведомления!")
+    logging.info(f"Пользователь {chat_id} подписался на уведомления")
 
 
 @app.route("/")
