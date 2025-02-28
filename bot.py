@@ -42,14 +42,28 @@ SCHEDULE = {
     ],
     "Friday": [
         {"subject": "cie_ksm/kaz", "start": time(8, 30), "end": time(10, 10), "room": "351"},
-        {"subject": "Math", "start": time(10, 15), "end": time(11, 40), "room": "223"},
+        {"subject": "Math", "start": time(10, 15), "end": time(17, 10), "room": "223"},
+        {"subject": "check", "start": time(17, 12), "end": time(17, 17), "room": "223"},
     ],
 }
-
 
 updater = Updater(TOKEN, use_context=True)
 dispatcher = updater.dispatcher
 
+
+def daily_notify(context: CallbackContext):
+    today = datetime.now(TIMEZONE).strftime("%A")
+
+    if today in SCHEDULE and len(SCHEDULE[today]) > 0:
+        first_lesson = SCHEDULE[today][0]
+        message = (
+            f"Доброе утро! 🌞\n"
+            f"Сегодня первый урок:\n"
+            f"🔔 {first_lesson['subject']}\n"
+            f"🚪 Кабинет: {first_lesson['room']}\n"
+            f"⏰ Начало: {first_lesson['start'].strftime('%H:%M')}"
+        )
+        context.bot.send_message(chat_id=context.job.context, text=message)
 
 
 def notify(context: CallbackContext):
@@ -59,18 +73,23 @@ def notify(context: CallbackContext):
     if today not in SCHEDULE:
         return
 
-    for lesson in SCHEDULE[today]:
-        if lesson["start"] == now:
-            message = (
-                f"🔔 Урок: {lesson['subject']}\n"
-                f"🚪 Кабинет: {lesson['room']}\n"
-                f"⏰ Начало: {lesson['start'].strftime('%H:%M')}"
-            )
-            context.bot.send_message(chat_id=context.job.context, text=message)
+    for index, lesson in enumerate(SCHEDULE[today]):
+        if lesson["end"] == now:
+            next_lesson = SCHEDULE[today][index + 1] if index + 1 < len(SCHEDULE[today]) else None
+            if next_lesson:
+                message = (
+                    f"✅ Урок завершён: {lesson['subject']}\n"
+                    f"Следующий урок:\n"
+                    f"🔔 {next_lesson['subject']}\n"
+                    f"🚪 Кабинет: {next_lesson['room']}\n"
+                    f"⏰ Начало: {next_lesson['start'].strftime('%H:%M')}"
+                )
+                context.bot.send_message(chat_id=context.job.context, text=message)
 
 
 def start(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
+    context.job_queue.run_daily(daily_notify, time(8, 0), context=chat_id)
     context.job_queue.run_repeating(notify, interval=60, first=0, context=chat_id)
     update.message.reply_text("✅ Вы подписаны на уведомления!")
 
@@ -89,7 +108,6 @@ def webhook():
 
 
 dispatcher.add_handler(CommandHandler("start", start))
-
 
 if __name__ == "__main__":
     PORT = int(os.environ.get("PORT", 5000))
